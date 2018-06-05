@@ -1,0 +1,81 @@
+---
+# tasks file for jackl0phty.prometheus
+
+- hosts: all
+  tasks:
+
+  # Include playbook variables.
+  - name: Include playbook vars
+    include_vars: '../vars/main.yml'
+
+  # Install packages for Prometheus.
+  - name: Install Prometheus packages.
+    pacman:
+      name: "{{ item }}"
+      state: present
+    with_items: '{{ prometheus_packages }}'
+    become: yes
+    become_user: root
+    when: ansible_distribution == "Archlinux"
+
+  # Download Prometheus source.
+  - name: Download Promethus source code.
+    get_url:
+      url: "{{ prometheus_download_url }}"
+      dest: "{{ prometheus_download_file }}"
+      mode: 0644
+      checksum: "sha256:{{ prometheus_download_checksum }}"
+    become: yes
+    become_user: root
+    when: prometheus_download_file.isfile is defined
+
+  # Create un-priv group for Prometheus.
+  - name: Ensure group prometheus exists
+    group:
+      name: "{{ prometheus_user }}"
+      state: present
+    become: yes
+    become_user: root
+
+  # Create un-priv user for Prometheus to run as.
+  - name: Create un-priv user 'prometheus'
+    user:
+      name: prometheus 
+      comment: Prometheus System User
+      group: "{{ prometheus_group }}"
+      shell: /usr/bin/bash
+      system: yes
+    become: yes
+    become_user: root
+
+  # Unzip Exodus download zip file.
+  - name: Untar Prometheus download zip file.
+    unarchive:
+      src:  "{{ prometheus_download_file }}"
+      dest: "{{ prometheus_download_dir }}" 
+      owner:  "{{ prometheus_user }}"
+      group: "{{ prometheus_group }}"
+    become: yes
+    become_user: root
+    when: prometheus_untar_dir.isfile is defined
+
+  # Copy Prometheus binaries & config into place.
+  - name: Copy prometheus binaries & config into place.
+    shell: cp "{{ prometheus_untar_dir }}"/prometheus "{{ prometheus_binary_dir }}"
+    shell: cp "{{ prometheus_untar_dir }}"/promtool "{{ prometheus_binary_dir }}"
+    args:
+      chdir: "{{ prometheus_untar_dir }}"
+    when: prometheus_binary.isfile is defined
+    become: yes
+    become_user: root
+
+  # Write out primary config for Prometheus.
+  - name: Write out primary config for Prometheus.
+    template:
+      src: ../templates/prometheus.j2
+      dest: "{{ prometheus_config_dir }}/prometheus.yml"
+      owner: "{{ prometheus_user }}" 
+      group: "{{ prometheus_group }}" 
+      mode: 0644
+    become: yes
+    become_user: root
