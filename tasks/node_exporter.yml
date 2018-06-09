@@ -1,0 +1,48 @@
+---
+
+- hosts: all
+  tasks:
+
+  # Include playbook variables.
+  - name: Include playbook vars
+    include_vars: '../vars/main.yml'
+
+  # Download node_exporter source & compile.
+  - name: Download & compile node_exporter source.
+    shell: "go get {{ node_exporter_url }}; cp /home/{{ prometheus_user }}/go/bin/node_exporter /usr/local/bin"
+    args:
+      chdir: "/home/{{ prometheus_user }}"
+    when: node_exporter_binary.isfile is defined
+    become: yes
+    become_user: root
+  
+  # Test if binary was copied to /usr/local/bin
+  - name: Test if binary was copied to /usr/local/bin
+    stat:
+      path: /usr/local/bin/node_exporter
+    register: p
+
+  - name: Use assert to test file existence. 
+    assert:
+      that:
+        - p.stat.exists and p.stat.exists
+
+  # Is node_exporter running yet?
+  - shell: echo $(netstat -nlp |grep node_exporter |awk '{ print $7 }' |sed 's/[0-9]*\///g')
+    register: node_exporter_running
+    become: yes
+    become_user: root
+
+  # Start node_exporter service.
+  - name: Start the node_exporter service.
+    shell: "{{ node_exporter_binary }} &"
+    args:
+    when: node_exporter_running.stdout == ""
+    become: yes
+    become_user: "{{ prometheus_user }}" 
+
+  # Test if node_exporter service is running.
+  - name: Testing if node_exporter service is running.
+    service:
+    name: node_exporter
+    state: started

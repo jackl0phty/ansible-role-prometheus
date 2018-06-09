@@ -48,7 +48,7 @@
     become: yes
     become_user: root
 
-  # Unzip Exodus download zip file.
+  # Unzip Prometheus download zip file.
   - name: Untar Prometheus download zip file.
     unarchive:
       src:  "{{ prometheus_download_file }}"
@@ -79,3 +79,69 @@
       mode: 0644
     become: yes
     become_user: root
+
+  # Create Prometheus root directory.
+  - name: Create Prometheus root directory.
+    file:
+      path: "{{ prometheus_root_dir }}"
+      state: directory
+      owner: "{{ prometheus_user }}"
+      group: "{{ prometheus_group }}"
+      mode: 0755
+    become: yes
+    become_user: root
+
+  # Create Prometheus log directory.
+  - name: Create Prometheus log directory.
+    file:
+      path: "{{ prometheus_log_dir }}"
+      state: directory
+      owner: "{{ prometheus_user }}"
+      group: "{{ prometheus_group }}"
+      mode: 0755
+    become: yes
+    become_user: root
+
+  # Create Prometheus data directory.
+  - name: Create Prometheus data directory.
+    file:
+      path: "{{ prometheus_data_dir }}"
+      state: directory
+      owner: "{{ prometheus_user }}"
+      group: "{{ prometheus_group }}"
+      mode: 0755
+    become: yes
+    become_user: root
+
+  # Initialize an empty Prometheus log file.
+  - name: Create empty Prometheus log file if doesn't exist. 
+    copy:
+      content: ""
+      dest: "{{ prometheus_log_dir }}/prometheus.log"
+      force: no
+      owner: "{{ prometheus_user }}"
+      group: "{{ prometheus_group }}"
+      mode: 0644
+    become: yes
+    become_user: root
+ 
+  # Is prometheus running yet?
+  - shell: echo $(netstat -nlp |grep prometheus |awk '{ print $7 }' |sed 's/[0-9]*\///g')
+    register: prometheus_running
+    become: yes
+    become_user: root
+
+
+  # Start primary Prometheus service.
+  - name: Start the primary Prometheus service.
+    shell: "{{ prometheus_binary_dir }}/prometheus {{ prometheus_startup_options }} &"
+    args:
+    when: prometheus_running.stdout == ""
+    become: yes
+    become_user: "{{ prometheus_user }}"
+
+  # Test if prometheus service is running.
+  - name: Testing if prometheus service is running.
+    service:
+    name: prometheus
+    state: started
