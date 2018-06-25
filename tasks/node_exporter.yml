@@ -35,7 +35,7 @@
 
   # Start node_exporter service.
   - name: Start the node_exporter service.
-    shell: "{{ node_exporter_binary }} &"
+    shell: "{{ node_exporter_binary }} {{ node_exporter_startup_options }} &"
     args:
     when: node_exporter_running.stdout == ""
     become: yes

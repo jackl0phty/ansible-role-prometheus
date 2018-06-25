@@ -26,9 +26,9 @@ scrape_configs:
     # scheme defaults to 'http'.
 
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['{{ ansible_default_ipv4.address }}:{{ prometheus_listening_port }}']
   
   - job_name: 'node_exporter'
     static_configs:
-      - targets: ['localhost:9100']
+      - targets: ['{{ ansible_default_ipv4.address }}:{{ node_exporter_listening_port }}']
 

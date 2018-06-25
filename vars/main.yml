@@ -53,8 +53,17 @@ prometheus_log_file: "{{ prometheus_log_dir}}/prometheus.log"
 # Prometheus data directory.
 prometheus_data_dir: "{{ prometheus_root_dir}}/data"
 
+# Prometheus listening port.
+prometheus_listening_port: 9090
+
 # Prometheus start up options.
-prometheus_startup_options: "--config.file={{ prometheus_config_file }} --web.enable-admin-api --storage.tsdb.path={{ prometheus_data_dir }}"
+prometheus_startup_options: "--web.listen-address={{ ansible_default_ipv4.address }}:{{ prometheus_listening_port }} --config.file={{ prometheus_config_file }} --web.enable-admin-api --storage.tsdb.path={{ prometheus_data_dir }}"
+
+# Node exporter listening port.
+node_exporter_listening_port: 9100
+
+# Node exporter start up options.
+node_exporter_startup_options: "--web.listen-address=:{{ node_exporter_listening_port }}"
 
 # node_exporter download url.
 node_exporter_url: 'github.com/prometheus/node_exporter'
